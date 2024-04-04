@@ -1,7 +1,9 @@
 [[redirects]]
-from = "/"
-to = "index.html"
-
+  force = true
+  from = "/api/*"
+  status = 200
+  to = "/.netlify/functions/api/:splat"
+  
 [build]
   functions = "functions"
 

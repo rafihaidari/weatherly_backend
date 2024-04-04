@@ -1,50 +1,39 @@
-const express = require("express");
-const serverless = require("serverless-http");
+import rateLimit from "express-rate-limit";
+import express, { Router } from "express";
+// const fetch = (...args) =>
+//   import("node-fetch").then(({ default: fetch }) => fetch(...args));
+import serverless from "serverless-http";
+import axios from "axios";
+
 const app = express();
-const router = express.Router();
+const router = Router();
 
-let records = [];
-
-//Get all students
-router.get("/", (req, res) => {
-  res.send("App is running..");
+const limiter = rateLimit({
+  windowMs: 1000, // 1 second window
+  max: 10, // limit each IP to 10 requests per windowMs
+  message: "Too many requests from this IP, please try again later.",
 });
 
-//Create new record
-router.post("/add", (req, res) => {
-  res.send("New record added.");
+router.use(limiter); // Apply rate limiting middleware to the router
+
+router.get("/", async (req, res) => {
+  const location = "Herat, Afghanistan";
+  const API_KEY = "QVHENTGF26TFW35PXAL39RVA2";
+  const url = `https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/${location}?key=${API_KEY}`;
+
+  try {
+    const apiRes = await axios(url);
+    const json = await apiRes.json();
+
+    // Send JSON response with fetched data
+    res.json(json);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
 });
 
-//delete existing record
-router.delete("/", (req, res) => {
-  res.send("Deleted existing record");
-});
+app.use(`/.netlify/functions/api`, router);
 
-//updating existing record
-router.put("/", (req, res) => {
-  res.send("Updating existing record");
-});
-
-//showing demo records
-router.get("/demo", (req, res) => {
-  res.json([
-    {
-      id: "001",
-      name: "Smith",
-      email: "smith@gmail.com",
-    },
-    {
-      id: "002",
-      name: "Sam",
-      email: "sam@gmail.com",
-    },
-    {
-      id: "003",
-      name: "lily",
-      email: "lily@gmail.com",
-    },
-  ]);
-});
-
-app.use("/.netlify/functions/api", router);
-module.exports.handler = serverless(app);
+export default app;
+export const handler = serverless(app);
